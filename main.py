@@ -1,17 +1,23 @@
 # main.py
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.responses import PlainTextResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.middleware import SlowAPIMiddleware
+import os
 
+# ------------------------------
+# FastAPI app
+# ------------------------------
 app = FastAPI(title="Trade Opportunities API")
 
 # ------------------------------
 # Security & Rate Limiting
 # ------------------------------
 security = HTTPBasic()
+
+# Initialize limiter correctly (no app_config needed)
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
@@ -26,9 +32,7 @@ def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
 # ------------------------------
 def fetch_market_data(sector: str):
     """Return mock market data for demo purposes."""
-    return [
-        f"No relevant market data found for {sector}."
-    ]
+    return [f"No relevant market data found for {sector}."]
 
 # ------------------------------
 # AI Analysis (Mocked)
@@ -57,16 +61,14 @@ def generate_markdown(sector: str, market_data: list, analysis: str):
 # ------------------------------
 # API Endpoint
 # ------------------------------
-from fastapi import Request
-
 @app.get("/analyze/{sector}", response_class=PlainTextResponse)
-@limiter.limit("3/minute")
+@limiter.limit("3/minute")  # 3 requests per minute
 async def analyze_sector(
-    request: Request,            # <-- Add this
+    request: Request,             # Must include request for slowapi
     sector: str,
     username: str = Depends(authenticate)
 ):
-    # Input validation
+    # Validate input
     if not sector.isalpha():
         raise HTTPException(status_code=400, detail="Sector name must be alphabetic")
     
@@ -76,20 +78,11 @@ async def analyze_sector(
     # AI analysis
     analysis = analyze_market(sector, market_data)
     
-    # Generate Markdown
+    # Generate Markdown report
     markdown_report = generate_markdown(sector, market_data, analysis)
     return markdown_report
-# ------------------------------
-# Root Endpoint
-# ------------------------------
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to Trade Opportunities API. Use /analyze/{sector} endpoint."}
 
-from starlette.config import Config
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-
-# Disable automatic .env loading
-config = Config(environ={})  # Pass empty environment to avoid .env
-limiter = Limiter(key_func=get_remote_address, app_config=config)
+# ------------------------------
+# Access OpenAI API key
+# ------------------------------
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # Must be set in Render Environment Variables
