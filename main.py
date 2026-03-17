@@ -1,30 +1,20 @@
 # main.py
-
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.responses import PlainTextResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.middleware import SlowAPIMiddleware
-import requests
-import openai
-import os
-
-# ------------------------------
-# Configuration
-# ------------------------------
-
-openai.api_key = os.getenv("OPENAI_API_KEY")  
 
 app = FastAPI(title="Trade Opportunities API")
+
+# ------------------------------
+# Security & Rate Limiting
+# ------------------------------
 security = HTTPBasic()
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
-
-# ------------------------------
-# Authentication
-# ------------------------------
 
 def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
     if credentials.username != "user" or credentials.password != "password":
@@ -32,45 +22,29 @@ def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
     return credentials.username
 
 # ------------------------------
-# Data Collection
+# Data Collection (Dummy)
 # ------------------------------
-
 def fetch_market_data(sector: str):
-    def fetch_market_data(sector: str):
-        return [
-            f"{sector} sector in India is experiencing steady growth.",
-            f"Recent investments are increasing in the {sector} industry.",
-            f"Government policies are supporting {sector} expansion.",
-            f"Exports in the {sector} sector are rising.",
-            f"Market demand for {sector} products is increasing."
-        ]
+    """Return mock market data for demo purposes."""
+    return [
+        f"No relevant market data found for {sector}."
+    ]
 
 # ------------------------------
-# AI Analysis
+# AI Analysis (Mocked)
 # ------------------------------
-
 def analyze_market(sector: str, market_data: list):
-    """
-    Use OpenAI GPT-4 to analyze market data for the sector
-    """
-    prompt = f"Analyze the following market data for the {sector} sector in India and provide trade opportunities:\n\n"
-    prompt += "\n".join(market_data)
-    
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=500
-        )
-        analysis = response.choices[0].message.content
-        return analysis
-    except Exception as e:
-        return f"Error during AI analysis: {e}"
+    """Mock AI analysis to prevent server crash."""
+    return (
+        f"AI analysis for {sector.title()} sector:\n"
+        f"- Trade opportunity 1\n"
+        f"- Trade opportunity 2\n"
+        f"- Trade opportunity 3"
+    )
 
 # ------------------------------
 # Markdown Report Generation
 # ------------------------------
-
 def generate_markdown(sector: str, market_data: list, analysis: str):
     md = f"# Trade Opportunities Report: {sector.title()}\n\n"
     md += "## Market Data\n"
@@ -86,8 +60,12 @@ def generate_markdown(sector: str, market_data: list, analysis: str):
 from fastapi import Request
 
 @app.get("/analyze/{sector}", response_class=PlainTextResponse)
-@limiter.limit("3/minute")  # Rate limit: 3 requests per minute per IP
-async def analyze_sector(sector: str, request: Request, username: str = Depends(authenticate)):
+@limiter.limit("3/minute")
+async def analyze_sector(
+    request: Request,            # <-- Add this
+    sector: str,
+    username: str = Depends(authenticate)
+):
     # Input validation
     if not sector.isalpha():
         raise HTTPException(status_code=400, detail="Sector name must be alphabetic")
@@ -100,13 +78,10 @@ async def analyze_sector(sector: str, request: Request, username: str = Depends(
     
     # Generate Markdown
     markdown_report = generate_markdown(sector, market_data, analysis)
-    
     return markdown_report
-
 # ------------------------------
 # Root Endpoint
 # ------------------------------
-
 @app.get("/")
 def read_root():
     return {"message": "Welcome to Trade Opportunities API. Use /analyze/{sector} endpoint."}
