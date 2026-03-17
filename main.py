@@ -36,18 +36,14 @@ def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
 # ------------------------------
 
 def fetch_market_data(sector: str):
-    """
-    Fetch top 5 news/market data items for the given sector from DuckDuckGo API.
-    """
-    url = f"https://api.duckduckgo.com/?q={sector}+india+market&format=json"
-    try:
-        resp = requests.get(url, timeout=5)
-        resp.raise_for_status()
-        data = resp.json()
-        results = [r["Text"] for r in data.get("RelatedTopics", []) if "Text" in r]
-        return results[:5] if results else [f"No relevant market data found for {sector}."]
-    except Exception as e:
-        return [f"Error fetching market data: {e}"]
+    def fetch_market_data(sector: str):
+        return [
+            f"{sector} sector in India is experiencing steady growth.",
+            f"Recent investments are increasing in the {sector} industry.",
+            f"Government policies are supporting {sector} expansion.",
+            f"Exports in the {sector} sector are rising.",
+            f"Market demand for {sector} products is increasing."
+        ]
 
 # ------------------------------
 # AI Analysis
