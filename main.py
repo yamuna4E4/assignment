@@ -85,3 +85,11 @@ async def analyze_sector(
 @app.get("/")
 def read_root():
     return {"message": "Welcome to Trade Opportunities API. Use /analyze/{sector} endpoint."}
+
+from starlette.config import Config
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+# Disable automatic .env loading
+config = Config(environ={})  # Pass empty environment to avoid .env
+limiter = Limiter(key_func=get_remote_address, app_config=config)
