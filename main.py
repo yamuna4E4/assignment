@@ -1,11 +1,16 @@
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.responses import PlainTextResponse
+
+# ✅ VERY IMPORTANT: set BEFORE slowapi import
+import os
+os.environ["STARLETTE_CONFIG"] = ""
+
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.middleware import SlowAPIMiddleware
+
 import requests
-import os
 
 # ------------------------------
 # App Setup
@@ -16,6 +21,7 @@ app = FastAPI(title="Trade Opportunities API")
 # Security + Rate Limiting
 # ------------------------------
 security = HTTPBasic()
+
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
@@ -26,7 +32,7 @@ def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
     return credentials.username
 
 # ------------------------------
-# Market Data (DuckDuckGo)
+# Market Data
 # ------------------------------
 def fetch_market_data(sector: str):
     url = f"https://api.duckduckgo.com/?q={sector}+india+market&format=json"
@@ -43,7 +49,7 @@ def fetch_market_data(sector: str):
         return [f"Error fetching market data: {e}"]
 
 # ------------------------------
-# Gemini AI Analysis
+# Gemini AI
 # ------------------------------
 def analyze_market(sector: str, market_data: list):
     API_KEY = os.getenv("GEMINI_API_KEY")
@@ -72,7 +78,7 @@ def analyze_market(sector: str, market_data: list):
         return f"AI analysis failed: {e}"
 
 # ------------------------------
-# Markdown Generator
+# Markdown
 # ------------------------------
 def generate_markdown(sector: str, market_data: list, analysis: str):
     md = f"# Trade Opportunities Report: {sector.title()}\n\n"
@@ -87,7 +93,7 @@ def generate_markdown(sector: str, market_data: list, analysis: str):
     return md
 
 # ------------------------------
-# Main Endpoint
+# Endpoint
 # ------------------------------
 @app.get("/analyze/{sector}", response_class=PlainTextResponse)
 @limiter.limit("3/minute")
@@ -101,13 +107,11 @@ async def analyze_sector(
 
     market_data = fetch_market_data(sector)
     analysis = analyze_market(sector, market_data)
-    report = generate_markdown(sector, market_data, analysis)
-
-    return report
+    return generate_markdown(sector, market_data, analysis)
 
 # ------------------------------
-# Root Endpoint
+# Root
 # ------------------------------
 @app.get("/")
 def root():
-    return {"message": "API running. Use /analyze/{sector}"}
+    return {"message": "API running"}
