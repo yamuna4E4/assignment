@@ -4,7 +4,7 @@ from fastapi.responses import PlainTextResponse
 
 # ✅ VERY IMPORTANT: set BEFORE slowapi import
 import os
-os.environ["STARLETTE_CONFIG"] = ""
+
 
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -22,7 +22,7 @@ app = FastAPI(title="Trade Opportunities API")
 # ------------------------------
 security = HTTPBasic()
 
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=get_remote_address, default_limits=[])
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
 
